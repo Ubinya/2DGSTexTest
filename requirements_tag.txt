@@ -1,0 +1,17 @@
+nerfview==0.0.3
+matplotlib
+splines
+tyro
+python-opencv
+# colmap 
+git+https://github.com/rmbrualla/pycolmap@cc7ea4b7301720ac29287dbe450952511b32125e
+tensorboard
+torchmetrics
+scikit-learn
+
+# gsplat==1.4.0 # not official repo
+
+extra_ldflags = [
+    "-L/home/ubinya/miniconda3/envs/textured_gaussians/targets/x86_64-linux/lib",
+    "-lcudart",
+]

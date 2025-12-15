@@ -1,0 +1,66 @@
+stage 1 2dgs pretraining:
+
+cd ../examples
+
+    --init_num_pts 10000 \ 
+    --strategy.cap-max 20000 \
+
+python simple_trainer_textured_gaussians.py mcmc \
+    --data_dir ../data/old_hall/train \
+    --result_dir outputs/test/old_hall_default \
+    --dataset "colmap" \
+    --init_type "sfm" \
+    --model_type=2dgs \
+    --texture_resolution 50 \
+    --port 6080
+
+python simple_trainer_textured_gaussians.py mcmc
+
+stage 1 with depth
+python simple_trainer_textured_gaussians.py mcmc \
+    --data_dir ../data/old_hall/train \
+    --result_dir ../outputs/test/old_hall_depth \
+    --dataset "colmap" \
+    --init_type "sfm" \
+    --model_type=2dgs \
+    --texture_resolution 50 \
+    --port 6070 \
+    --depth_loss \
+    --depth_mode "npz" 
+
+
+export TORCH_CUDA_EXTRA_CFLAGS="-diag-suppress 20012"
+export MAX_JOBS=4
+
+
+
+stage 2 texture:
+python simple_trainer_textured_gaussians.py mcmc \
+    --data_dir ../data/old_hall/train \
+    --pretrained_path outputs/test/old_hall/ckpts/ckpt_29999.pt \
+    --result_dir outputs/test_tex \
+    --dataset "colmap" \
+    --init_type "pretrained" \
+    --model_type=textured_gaussians \
+    --init_num_pts 100000 \
+    --strategy.cap-max 100000 \
+    --strategy.refine-start-iter=1000000000000 \
+    --textured_rgb \
+    --textured_alpha \
+    --texture_resolution 20 \
+    --port 6070
+
+python render_scene.py mcmc \
+    --data_dir ../data/old_hall/train \
+    --pretrained_path outputs/test_tex/ckpts/ckpt_29999.pt \
+    --result_dir outputs/test_tex \
+    --dataset "colmap" \
+    --init_type "pretrained" \
+    --model_type=textured_gaussians \
+    --init_num_pts 100000 \
+    --strategy.cap-max 100000 \
+    --strategy.refine-start-iter=1000000000000 \
+    --textured_rgb \
+    --textured_alpha \
+    --texture_resolution 20 \
+    --port 6070
