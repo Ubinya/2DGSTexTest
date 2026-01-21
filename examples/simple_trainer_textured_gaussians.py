@@ -35,6 +35,7 @@ from utils import (
 
 from textured_gaussians.rendering import rasterization_2dgs, rasterization_textured_gaussians
 from textured_gaussians.strategy import DefaultStrategy, MCMCStrategy
+import pdb
 
 @dataclass
 class Config:
@@ -70,7 +71,7 @@ class Config:
     # Number of training steps
     max_steps: int = 30_000
     # Steps to evaluate the model
-    eval_steps: List[int] = field(default_factory=lambda: [7_000, 30_000])
+    eval_steps: List[int] = field(default_factory=lambda: [100,7_000, 30_000])
     # Steps to save the model
     save_steps: List[int] = field(default_factory=lambda: [7_000, 30_000])
 
@@ -149,13 +150,13 @@ class Config:
     app_opt_reg: float = 1e-6
 
     # Enable depth loss. (experimental)
-    depth_loss: bool = False
+    depth_loss: bool = True
     # Weight for depth loss
-    depth_lambda: float = 1e-2
-    depth_mode: str = "pts"
+    depth_lambda: float = 1.0
+    depth_mode: str = "npz"
 
     # Enable normal consistency loss. (Currently for 2DGS only)
-    normal_loss: bool = False
+    normal_loss: bool = True
     # Weight for normal loss
     normal_lambda: float = 5e-2
     # Iteration to start normal consistency regulerization
@@ -651,8 +652,7 @@ class Runner:
             )
             image_ids = data["image_id"].to(device)
             if cfg.depth_loss:
-                points = data["points"].to(device)  # [1, M, 2]
-                depths_gt = data["depths"].to(device)  # [1, M]
+                depth_gt = data["depths"].to(device)  # [H,W] ?
             if cfg.alpha_loss:
                 alphas_gt = data["alpha"].to(device) # [1, H, W]
 
@@ -726,35 +726,12 @@ class Runner:
             loss = l1loss * (1.0 - cfg.ssim_lambda) + ssimloss * cfg.ssim_lambda
             if cfg.depth_loss:
                 # query depths from depth map
-                points = torch.stack(
-                    [
-                        points[:, :, 0] / (width - 1) * 2 - 1,
-                        points[:, :, 1] / (height - 1) * 2 - 1,
-                    ],
-                    dim=-1,
-                )  # normalize to [-1, 1]
-                grid = points.unsqueeze(2)  # [1, M, 1, 2]
-                depths = F.grid_sample(
-                    depths.permute(0, 3, 1, 2), grid, align_corners=True
-                )  # [1, 1, M, 1]
-                depths = depths.squeeze(3).squeeze(1)  # [1, M]
-                # calculate loss in disparity space
+                depth_pred = torch.squeeze(depths,-1)
+                mask1 = depth_gt > 0
                 # pdb.set_trace()
-                # depths = depths * self.splats["depth_scaler"][0]
-                min_pos=1e-8
-                disp = torch.zeros_like(depths)
-                disp_gt = torch.zeros_like(depths_gt)
-                mask = depths > 0.0
-                if mask.any():
-                    safe_depths = depths[mask].clamp_min(min_pos)
-                    disp[mask] = 1.0 / safe_depths
-                mask = depths_gt > 0.0
-                if mask.any():
-                    safe_depths = depths_gt[mask].clamp_min(min_pos)
-                    disp_gt[mask] = 1.0 / safe_depths
-                
-                depthloss = F.l1_loss(disp, disp_gt) * self.scene_scale
-                loss += depthloss * cfg.depth_lambda
+                #在大高斯处增加loss，弱纹理处也会产生稠密点云，使用稠密点云生成的深度图一定程度将原始分辨率的点云带入，降低低分辨率点云的影响
+                depthloss = (torch.abs((depth_pred - depth_gt)[mask1])).mean()
+                loss += depthloss  * cfg.depth_lambda
 
             if cfg.normal_loss:
                 if step > cfg.normal_start_iter:

@@ -40,7 +40,7 @@ class Config:
     disable_viewer: bool = False
     
     # Path to the .pt file. If provide, it will skip training and render a video
-    ckpt: Optional[str] = "outputs/test_tex/ckpts/ckpt_29999.pt"
+    ckpt: Optional[str] = "../outputs/old_hall/depth_scale/ckpts/ckpt_29999.pt"
     # Path to the Mip-NeRF 360 dataset
     data_dir: str = "../data/old_hall/train"
     # Directory to save results

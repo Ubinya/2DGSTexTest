@@ -6,8 +6,8 @@ cd ../examples
     --strategy.cap-max 20000 \
 
 python simple_trainer_textured_gaussians.py mcmc \
-    --data_dir ../data/old_hall/train \
-    --result_dir outputs/test/old_hall_default \
+    --data_dir ../data/hall_old \
+    --result_dir outputs/hall_old/base \
     --dataset "colmap" \
     --init_type "sfm" \
     --model_type=2dgs \
@@ -18,17 +18,16 @@ python simple_trainer_textured_gaussians.py mcmc
 
 stage 1 with depth
 python simple_trainer_textured_gaussians.py mcmc \
-    --data_dir ../data/old_hall/train \
-    --result_dir ../outputs/test/old_hall_depth \
+    --data_dir ../data/hall_old \
+    --result_dir outputs/hall_old/base \
     --dataset "colmap" \
     --init_type "sfm" \
     --model_type=2dgs \
     --texture_resolution 50 \
-    --port 6070 \
-    --depth_loss \
-    --depth_mode "npz" 
+    --port 6080
 
 
+# build diy gsplat
 export TORCH_CUDA_EXTRA_CFLAGS="-diag-suppress 20012"
 export MAX_JOBS=4
 
@@ -36,31 +35,32 @@ export MAX_JOBS=4
 
 stage 2 texture:
 python simple_trainer_textured_gaussians.py mcmc \
-    --data_dir ../data/old_hall/train \
-    --pretrained_path outputs/test/old_hall/ckpts/ckpt_29999.pt \
-    --result_dir outputs/test_tex \
+    --data_dir ../data/hall_old \
+    --pretrained_path outputs/hall_old/base/ckpts/ckpt_29999.pt \
+    --result_dir ../outputs/hall_old_tex \
     --dataset "colmap" \
     --init_type "pretrained" \
-    --model_type=textured_gaussians \
-    --init_num_pts 100000 \
-    --strategy.cap-max 100000 \
+    --init_num_pts 1_000_000 \
+    --strategy.cap-max 1_000_000 \
     --strategy.refine-start-iter=1000000000000 \
+    --model_type=textured_gaussians \
+    --textured_rgb \
+    --texture_resolution 10 \
+    --port 6070
+
+# texture args
     --textured_rgb \
     --textured_alpha \
-    --texture_resolution 20 \
-    --port 6070
 
 python render_scene.py mcmc \
     --data_dir ../data/old_hall/train \
-    --pretrained_path outputs/test_tex/ckpts/ckpt_29999.pt \
-    --result_dir outputs/test_tex \
+    --pretrained_path ../outputs/old_hall/depth_scale/ckpts/ckpt_29999.pt \
+    --result_dir ../outputs/old_hall/depth_scale/ \
     --dataset "colmap" \
     --init_type "pretrained" \
     --model_type=textured_gaussians \
     --init_num_pts 100000 \
     --strategy.cap-max 100000 \
     --strategy.refine-start-iter=1000000000000 \
-    --textured_rgb \
-    --textured_alpha \
     --texture_resolution 20 \
     --port 6070

@@ -163,9 +163,9 @@ class Parser:
             rot = im.R()
             
             # pdb.set_trace()
-            tvec = np.array(list(im.tvec.item()), dtype=float)
-            trans = tvec.reshape(3, 1)
-            # trans = im.tvec.reshape(3, 1)
+            # tvec = np.array(list(im.tvec.item()), dtype=float)
+            # trans = tvec.reshape(3, 1)
+            trans = im.tvec.reshape(3, 1)
             w2c = np.concatenate([np.concatenate([rot, trans], 1), bottom], axis=0)
             w2c_mats.append(w2c)
 
@@ -280,14 +280,14 @@ class Parser:
         point_indices = dict()
 
         image_id_to_name = {v: k for k, v in manager.name_to_image_id.items()}
-        for point_id, data in manager.point3D_id_to_images.items():
-            for image_id, _ in data:
-                image_name = image_id_to_name[image_id]
-                point_idx = manager.point3D_id_to_point3D_idx[point_id]
-                point_indices.setdefault(image_name, []).append(point_idx)
-        point_indices = {
-            k: np.array(v).astype(np.int32) for k, v in point_indices.items()
-        }
+        # for point_id, data in manager.point3D_id_to_images.items():
+        #     for image_id, _ in data:
+        #         image_name = image_id_to_name[image_id]
+        #         point_idx = manager.point3D_id_to_point3D_idx[point_id]
+        #         point_indices.setdefault(image_name, []).append(point_idx)
+        # point_indices = {
+        #     k: np.array(v).astype(np.int32) for k, v in point_indices.items()
+        # }
 
         # Normalize the world space.
         if normalize:
@@ -505,16 +505,15 @@ class Dataset:
                     print("unknown ext for img")
                 data_np = np.load(depth_npz_path)
                 depth_np = data_np['arr_0']
-                h,w = depth_np.shape
-                x_coords = np.arange(w)  # [0, 1, 2, ..., w-1]
-                y_coords = np.arange(h)  # [0, 1, 2, ..., h-1]
-                xx, yy = np.meshgrid(x_coords, y_coords)
-                pixel_coords = np.stack([xx.ravel(), yy.ravel()], axis=-1)
+                # h,w = depth_np.shape
+                # x_coords = np.arange(w)  # [0, 1, 2, ..., w-1]
+                # y_coords = np.arange(h)  # [0, 1, 2, ..., h-1]
+                # xx, yy = np.meshgrid(x_coords, y_coords)
+                # pixel_coords = np.stack([xx.ravel(), yy.ravel()], axis=-1)
                 
-                depth_np = depth_np.reshape(-1)
-                sampled_indices = np.random.choice(len(depth_np), size=self.num_depth_sample, replace=False)  # 不重复采样
-                data["points"] = torch.from_numpy(pixel_coords[sampled_indices]).float()
-                data["depths"] = torch.from_numpy(depth_np[sampled_indices]).float()
+                #depth_np = depth_np.reshape(-1)
+                #data["points"] = torch.from_numpy(pixel_coords).float()
+                data["depths"] = torch.from_numpy(depth_np).float()
 
             else:
                 print("unknown depth_mode when loading depth gt for dataseet")

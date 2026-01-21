@@ -37,3 +37,7 @@ Thumbs.db
 results/
 temp/
 
+data/
+outputs/
+example/outputs/
+
